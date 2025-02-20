@@ -1,10 +1,13 @@
 package client
 
 import (
-	"fmt"
 	"net/http"
 	"time"
+
+	"github.com/theNoobExpert/icicibreeze/pkg/utils"
 )
+
+var logger = utils.GetLogger()
 
 type HeaderTransport struct {
 	Transport http.RoundTripper
@@ -41,10 +44,11 @@ func (rt *RetryTransport) RoundTrip(req *http.Request) (*http.Response, error) {
 		if err == nil {
 			return resp, nil
 		}
-		fmt.Println("Retrying...", i+1)
+		logger.Warnf("Retrying request %s %s (attempt %d/%d): %v", req.Method, req.URL, i+1, rt.MaxRetries, err)
 		time.Sleep(time.Second)
 	}
 
+	logger.Errorf("Request failed after %d retries: %v", rt.MaxRetries, err)
 	return resp, err
 }
 
@@ -54,9 +58,11 @@ type LoggingTransport struct {
 
 func (lt *LoggingTransport) RoundTrip(req *http.Request) (*http.Response, error) {
 	start := time.Now()
-	fmt.Println("Request:", req.Method, req.URL)
+	logger.Infof("Request: %s %s", req.Method, req.URL)
 
-	fmt.Println("Request body: ", req.Body)
+	if req.Body != nil {
+		logger.Debug("Request body: %v", req.Body)
+	}
 
 	if lt.Transport == nil {
 		lt.Transport = http.DefaultTransport
@@ -64,8 +70,10 @@ func (lt *LoggingTransport) RoundTrip(req *http.Request) (*http.Response, error)
 
 	resp, err := lt.Transport.RoundTrip(req)
 
-	if err == nil {
-		fmt.Println("Response Status:", resp.Status, "Time:", time.Since(start))
+	if err != nil {
+		logger.Errorf("Request failed: %s %s, error: %v", req.Method, req.URL, err)
+	} else {
+		logger.Infof("Response Status: %s, Time Taken: %v", resp.Status, time.Since(start))
 	}
 
 	return resp, err

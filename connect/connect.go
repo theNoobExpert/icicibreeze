@@ -2,6 +2,7 @@ package connect
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"net/http"
@@ -12,12 +13,13 @@ import (
 	"github.com/theNoobExpert/icicibreeze/pkg/utils"
 )
 
+var logger = utils.GetLogger()
+
 type HttpClient interface {
 	Do(req *http.Request) (*http.Response, error)
 }
 
-type BreezeCredentials struct {
-}
+type BreezeCredentials struct{}
 
 type BreezeConnect struct {
 	Client              HttpClient
@@ -45,6 +47,15 @@ func NewBreezeConnectClient(appKey, appSecret, apiSessionKey string, timeoutSeco
 		ApiSessionKey: apiSessionKey,
 	}
 
+	if apiSessionKey != "" {
+		_, err := breezeClient.InitSessionToken()
+		if err != nil {
+			return nil, fmt.Errorf("error while initializing breeze client: %w", err)
+		}
+	}
+
+	logger.Infof("BreezeConnect client initialized with AppKey: %s", appKey)
+
 	return breezeClient, nil
 }
 
@@ -64,11 +75,13 @@ func (brc *BreezeConnect) GenerateHeaders(body string, contentType string) map[s
 	}
 }
 
-func (bc *BreezeConnect) MakeRequest(request *BreezeRequest) ([]byte, error) {
+func (brc *BreezeConnect) MakeRequest(request *BreezeRequest) ([]byte, error) {
+	logger.Infof("Making request: %s %s", request.Method, request.URL)
 
 	err := utils.Validate.Struct(request)
 	if err != nil {
-		return nil, fmt.Errorf("error validating request: ")
+		logger.Errorf("Error validating request: %v", err)
+		return nil, err
 	}
 
 	var req *http.Request
@@ -81,34 +94,44 @@ func (bc *BreezeConnect) MakeRequest(request *BreezeRequest) ([]byte, error) {
 	}
 
 	if newReqErr != nil {
-		return nil, fmt.Errorf("could not create request: %w", newReqErr)
+		logger.Errorf("Could not create request: %v", newReqErr)
+		return nil, newReqErr
 	}
 
 	for headerKey, headerValue := range request.Headers {
-		req.Header[headerKey] = []string{headerValue} // using req.Header.Set changes the case of header key causing error as headers are case sensitve
+		req.Header[headerKey] = []string{headerValue}
 	}
 
-	resp, err := bc.Client.Do(req)
+	resp, err := brc.Client.Do(req)
 	if err != nil {
-		return nil, fmt.Errorf("failed to execute request: %w", err)
+		logger.Errorf("Failed to execute request: %v", err)
+		return nil, err
 	}
 	defer resp.Body.Close()
+
+	logger.Infof("Request completed with status: %s", resp.Status)
 	return io.ReadAll(resp.Body)
 }
 
-func (bc *BreezeConnect) MakeRequestWithTokens(method config.APIRequestMethod, endpoint config.APIEndpoint, payload any, headers map[string]string) ([]byte, error) {
+func (brc *BreezeConnect) MakeRequestWithTokens(method config.APIRequestMethod, endpoint config.APIEndpoint, payload any, headers map[string]string) ([]byte, error) {
+
+	if brc.ApiSessionToken == "" {
+		return nil, errors.New("Api session key not initialized.")
+	}
+
 	url := config.API_URL + string(endpoint)
 	body := "{}"
 
 	if payload != nil {
 		bodyBytes, err := json.Marshal(payload)
 		if err != nil {
-			return nil, fmt.Errorf("failed to marshal request body: %w", err)
+			logger.Errorf("Failed to marshal request body: %v", err)
+			return nil, err
 		}
 		body = string(bodyBytes)
 	}
 
-	requestHeaders := bc.GenerateHeaders(body, "")
+	requestHeaders := brc.GenerateHeaders(body, "")
 
 	if headers != nil {
 		for headerKey, headerValue := range headers {
@@ -116,7 +139,8 @@ func (bc *BreezeConnect) MakeRequestWithTokens(method config.APIRequestMethod, e
 		}
 	}
 
-	return bc.MakeRequest(
+	logger.Infof("Making authenticated request to %s", url)
+	return brc.MakeRequest(
 		&BreezeRequest{
 			Method:  method,
 			URL:     url,
