@@ -2,7 +2,8 @@ package config
 
 // URLs (Replaced map with constants)
 const (
-	API_URL              = "https://api.icicidirect.com/breezeapi/api/v1/"
+	API_URL_BASE         = "https://api.icicidirect.com/"
+	API_URL              = API_URL_BASE + "breezeapi/api/v1/"
 	BREEZE_NEW_URL       = "https://breezeapi.icicidirect.com/api/v2/"
 	LIVE_FEEDS_URL       = "https://livefeeds.icicidirect.com"
 	LIVE_STREAM_URL      = "https://livestream.icicidirect.com"
@@ -40,6 +41,7 @@ const (
 	ENDPOINT_PREVIEW_ORDER      APIEndpoint = "preview_order"
 	ENDPOINT_LIMITCALCULATOR    APIEndpoint = "fnolmtpriceandqtycal"
 	ENDPOINT_MARGINCALCULATOR   APIEndpoint = "margincalculator"
+	ENDPOINT_USER_LOGIN         APIEndpoint = "/apiuser/login"
 )
 
 // Exception Messages

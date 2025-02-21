@@ -5,8 +5,9 @@ import (
 	"fmt"
 
 	"github.com/theNoobExpert/icicibreeze/pkg/config"
-	"github.com/theNoobExpert/icicibreeze/pkg/utils"
 )
+
+////////////////////////// CUSTOMER DETAILS //////////////////////////
 
 type CustomerDetailsResponse struct {
 	Status  int             `json:"Status"`
@@ -74,26 +75,7 @@ func (brc *BreezeConnect) GetCustomerDetails() (*CustomerDetailsResponse, error)
 	return &customerDetails, nil
 }
 
-//////////////////////////////////////////////////////////////////
-
-func (brc *BreezeConnect) InitSessionToken() (*CustomerDetailsResponse, error) {
-	customerDetails, err := brc.GetCustomerDetails()
-	if err != nil {
-		return nil, fmt.Errorf("error while getting customer details: %w", err)
-	}
-
-	brc.ApiSessionToken = customerDetails.Success.SessionToken
-	brc.IsClientInitialized = true
-
-	err = utils.Validate.Struct(brc)
-	if err != nil {
-		return nil, fmt.Errorf("breeze client validation error: %w", err)
-	}
-
-	return customerDetails, nil
-}
-
-//////////////////////////////////////////////////////////////////
+////////////////////////// CUSTOMER DEMAT //////////////////////////
 
 type CustomerDematResponse struct {
 	Status  int                    `json:"Status"`
@@ -127,7 +109,7 @@ func (brc *BreezeConnect) GetDematHoldings() (*CustomerDematResponse, error) {
 	return &dematHoldings, nil
 }
 
-//////////////////////////////////////////////////////////////////
+////////////////////////// CUSTOMER FUNDS //////////////////////////
 
 type CustomerFundsResponse struct {
 	Status  int             `json:"Status"`

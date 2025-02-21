@@ -59,6 +59,27 @@ func NewBreezeConnectClient(appKey, appSecret, apiSessionKey string, timeoutSeco
 	return breezeClient, nil
 }
 
+////////////////////////// INIT SESSION //////////////////////////
+
+func (brc *BreezeConnect) InitSessionToken() (*CustomerDetailsResponse, error) {
+	customerDetails, err := brc.GetCustomerDetails()
+	if err != nil {
+		return nil, fmt.Errorf("error while getting customer details: %w", err)
+	}
+
+	brc.ApiSessionToken = customerDetails.Success.SessionToken
+	brc.IsClientInitialized = true
+
+	err = utils.Validate.Struct(brc)
+	if err != nil {
+		return nil, fmt.Errorf("breeze client validation error: %w", err)
+	}
+
+	return customerDetails, nil
+}
+
+////////////////////////// GENERATE HEADERS //////////////////////////
+
 func (brc *BreezeConnect) GenerateHeaders(body string, contentType string) map[string]string {
 	if contentType == "" {
 		contentType = "application/json"
@@ -74,6 +95,8 @@ func (brc *BreezeConnect) GenerateHeaders(body string, contentType string) map[s
 		"X-SessionToken": brc.ApiSessionToken,
 	}
 }
+
+////////////////////////// MAKE REQUEST //////////////////////////
 
 func (brc *BreezeConnect) MakeRequest(request *BreezeRequest) ([]byte, error) {
 	logger.Infof("Making request: %s %s", request.Method, request.URL)
@@ -113,6 +136,8 @@ func (brc *BreezeConnect) MakeRequest(request *BreezeRequest) ([]byte, error) {
 	return io.ReadAll(resp.Body)
 }
 
+////////////////////////// MAKE REQUEST WITH TOKENS //////////////////////////
+
 func (brc *BreezeConnect) MakeRequestWithTokens(method config.APIRequestMethod, endpoint config.APIEndpoint, payload any, headers map[string]string) ([]byte, error) {
 
 	if brc.ApiSessionToken == "" {
@@ -148,4 +173,14 @@ func (brc *BreezeConnect) MakeRequestWithTokens(method config.APIRequestMethod, 
 			Headers: requestHeaders,
 		},
 	)
+}
+
+////////////////////////// GET LOGIN URL //////////////////////////
+
+func (brc *BreezeConnect) GetLoginURL() (string, error) {
+	if brc.AppKey == "" {
+		return "", errors.New("app key required to generate login url")
+	}
+
+	return fmt.Sprintf("%s%s?api_key=%s", config.API_URL_BASE, config.ENDPOINT_USER_LOGIN, brc.AppKey), nil
 }
