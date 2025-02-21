@@ -41,7 +41,7 @@ const (
 	ENDPOINT_PREVIEW_ORDER      APIEndpoint = "preview_order"
 	ENDPOINT_LIMITCALCULATOR    APIEndpoint = "fnolmtpriceandqtycal"
 	ENDPOINT_MARGINCALCULATOR   APIEndpoint = "margincalculator"
-	ENDPOINT_USER_LOGIN         APIEndpoint = "/apiuser/login"
+	ENDPOINT_USER_LOGIN         APIEndpoint = "apiuser/login"
 )
 
 // Exception Messages

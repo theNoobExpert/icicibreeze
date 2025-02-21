@@ -41,14 +41,13 @@ func NewBreezeConnectClient(appKey, appSecret, apiSessionKey string, timeoutSeco
 	httpClient := NewHttpClient(time.Duration(timeoutSeconds) * time.Second)
 
 	breezeClient := &BreezeConnect{
-		Client:        httpClient,
-		AppKey:        appKey,
-		AppSecret:     appSecret,
-		ApiSessionKey: apiSessionKey,
+		Client:    httpClient,
+		AppKey:    appKey,
+		AppSecret: appSecret,
 	}
 
 	if apiSessionKey != "" {
-		_, err := breezeClient.InitSessionToken()
+		_, err := breezeClient.InitSessionToken(apiSessionKey)
 		if err != nil {
 			return nil, fmt.Errorf("error while initializing breeze client: %w", err)
 		}
@@ -61,7 +60,13 @@ func NewBreezeConnectClient(appKey, appSecret, apiSessionKey string, timeoutSeco
 
 ////////////////////////// INIT SESSION //////////////////////////
 
-func (brc *BreezeConnect) InitSessionToken() (*CustomerDetailsResponse, error) {
+func (brc *BreezeConnect) InitSessionToken(apiSessionKey string) (*CustomerDetailsResponse, error) {
+	if apiSessionKey == "" {
+		return nil, errors.New("invalid session key")
+	}
+
+	brc.ApiSessionKey = apiSessionKey
+
 	customerDetails, err := brc.GetCustomerDetails()
 	if err != nil {
 		return nil, fmt.Errorf("error while getting customer details: %w", err)
